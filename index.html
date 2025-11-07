@@ -12,20 +12,32 @@
       crossorigin="anonymous"
     />
     <style>
-      /* Animasi jatuh */
-      @keyframes fall {
+      /* Animasi mantul */
+      @keyframes bounceDown {
         0% {
-          transform: translateY(0) rotate(0deg);
+          transform: translateY(0);
           opacity: 1;
         }
+        20% {
+          transform: translateY(10px);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(5px);
+        }
+        80% {
+          transform: translateY(-5px);
+        }
         100% {
-          transform: translateY(100vh) rotate(10deg);
+          transform: translateY(100vh);
           opacity: 0;
         }
       }
 
-      .falling {
-        animation: fall 1.5s ease-out forwards;
+      .bouncing {
+        animation: bounceDown 1.5s ease-out forwards;
       }
     </style>
 
@@ -79,27 +91,56 @@
       }
 
       // Fungsi untuk animasi typing
-      function typeText(element, text, callback) {
-        let i = 0;
-        element.innerHTML = '';
-        const timer = setInterval(() => {
-          if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-          } else {
-            clearInterval(timer);
-            if (callback) callback();
+      function typeText(element, text, speed = 50) {
+        return new Promise((resolve) => {
+          let i = 0;
+          element.innerHTML = '';
+          if (!text) {
+             resolve();
+             return;
           }
-        }, 50); // Kecepatan typing, bisa diubah (ms)
+          const timer = setInterval(() => {
+            if (i < text.length) {
+              element.innerHTML += text.charAt(i);
+              i++;
+            } else {
+              clearInterval(timer);
+              resolve();
+            }
+          }, speed); // Kecepatan typing dalam ms
+        });
+      }
+
+      // Fungsi untuk menampilkan dialog dengan typing
+      async function showDialog(titleText, bodyText, options = {}) {
+        const dialogOptions = {
+          title: `<span id="typing-title">${titleText || ''}</span>`,
+          html: `<div id="typing-text">${bodyText || ''}</div>`,
+          showConfirmButton: true,
+          ...options, // Override default options jika diperlukan
+          willOpen: async () => {
+            const titleElement = document.getElementById('typing-title');
+            const textElement = document.getElementById('typing-text');
+            // Jika title kosong, jangan panggil typeText
+            if (titleElement && titleText) {
+              await typeText(titleElement, titleText);
+            }
+            // Jika text kosong, jangan panggil typeText
+            if (textElement && bodyText) {
+              await typeText(textElement, bodyText);
+            }
+            // Panggil fungsi willOpen asli jika ada
+            if (options.willOpen) {
+              options.willOpen();
+            }
+          }
+        };
+        return await swals.fire(dialogOptions);
       }
 
       async function mulai() {
-        await swals.fire(
-          "Halo!",
-          "Karena ini hari yang istimewa buat u",
-          "question"
-        );
-        await swals.fire("Aku mau ngucapin sesuatu nih ke kamu");
+        await showDialog("Halo!", "Karena ini hari yang istimewa buat u", { icon: "question" });
+        await showDialog("Aku mau ngucapin sesuatu nih ke kamu");
 
         var { value: nama } = await swals.fire({
           title: "Oh iya tulis nama kamu dulu di sini",
@@ -112,8 +153,7 @@
         }
 
         document.getElementById("birthdayName").textContent = nama;
-        var { isConfirmed: sayang } = await swals.fire({
-          title: `${nama} hari ini ulang tahun ya?`,
+        var { isConfirmed: sayang } = await showDialog(`${nama} hari ini ulang tahun ya?`, "", { 
           confirmButtonText: "Iya",
           cancelButtonText: "Ngak",
           showCancelButton: true,
@@ -121,52 +161,35 @@
 
         if (!sayang) {
           // Tampilkan dialog kecewa dengan animasi typing
-          const { html: dialogHtml } = await swals.fire({
-            title: '<span id="typing-title">Aww... kok nggak sih 😢</span>',
-            html: '<div id="typing-text">Jangan bohong deh, aku tahu ini hari spesial kamu kok!</div>',
-            icon: "error",
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            willOpen: () => {
-              typeText(document.getElementById('typing-title'), 'Aww... kok nggak sih 😢', () => {
-                // Callback setelah title selesai, bisa kosong atau tambahkan logika lain
-              });
-              typeText(document.getElementById('typing-text'), 'Jangan bohong deh, aku tahu ini hari spesial kamu kok!', () => {
-                // Callback setelah teks selesai, bisa kosong atau tambahkan logika lain
-              });
-            }
-          });
+          await showDialog("Aww... kok nggak sih 😢", "Jangan bohong deh, aku tahu ini hari spesial kamu kok!", { icon: "error" });
 
-          // Tunggu sebentar sebelum menerapkan animasi runtuh
+          // Ambil container dialog saat ini dan terapkan animasi mantul
+          const dialogContainer = document.querySelector('.swal2-container');
+          if (dialogContainer) {
+            dialogContainer.classList.add('bouncing');
+          }
+
+          // Tunggu sebentar setelah animasi selesai sebelum muncul reset
           setTimeout(() => {
-            const dialogContainer = document.querySelector('.swal2-container');
-            if (dialogContainer) {
-              dialogContainer.classList.add('falling');
-            }
-
-            // Setelah animasi selesai, tampilkan tombol reset
-            setTimeout(() => {
-              swals.fire({
-                title: "Yah kok bohong sih...",
-                text: "Mau coba dari awal lagi?",
-                showCancelButton: true,
-                confirmButtonText: "Mulai Ulang",
-                cancelButtonText: "Tutup",
-              }).then((result) => {
-                if (result.isConfirmed) {
-                  reset();
-                } else {
-                  stopMusic();
-                }
-              });
-            }, 1500); // Sesuaikan dengan durasi animasi CSS (1.5 detik)
-          }, 2000); // Tunggu 2 detik setelah teks selesai muncul (1 detik teks + 1 detik jeda)
+            swals.fire({
+              title: "Yah kok bohong sih...",
+              text: "Mau coba dari awal lagi?",
+              showCancelButton: true,
+              confirmButtonText: "Mulai Ulang",
+              cancelButtonText: "Tutup",
+            }).then((result) => {
+              if (result.isConfirmed) {
+                reset();
+              } else {
+                stopMusic();
+              }
+            });
+          }, 1500); // Harus sesuai durasi animasi CSS
 
           return;
         }
 
-        await swals.fire("Cie.. udah makin tua aja nih hehe");
+        await showDialog("Cie.. udah makin tua aja nih hehe");
 
         var { value: persen } = await swals.fire({
           title: "Hari ini kamu ulang tahun yang ke berapa?",
@@ -184,26 +207,24 @@
           return;
         }
 
-        await swals.fire(
+        await showDialog(
           `Selamat ya.. Semoga di umur yang ke ${persen} ini, Hari-hari kamu selalu di penuhi dengan kebahagiaan :)`
         );
 
-        var { isConfirmed: kangen } = await swals.fire({
-          title:
-            "Dan semoga di tahun ini, apa yang kamu inginkan bisa terwujud",
-          confirmButtonText: "Aamiin",
-        });
+        var { isConfirmed: kangen } = await showDialog(
+          "Dan semoga di tahun ini, apa yang kamu inginkan bisa terwujud", "", { confirmButtonText: "Aamiin" }
+        );
 
         if (!kangen) {
           stopMusic();
           return;
         }
 
-        await swals.fire(
+        await showDialog(
           "Yauden aku cuma mau ngucapin itu aja, Sukses terus dan Sehat selalu :)"
         );
-        await swals.fire(`Oh iya ${nama} terakhir nih`);
-        await swals.fire("Coba klik ikon kado di paling bawah dong wkwkwk");
+        await showDialog(`Oh iya ${nama} terakhir nih`);
+        await showDialog("Coba klik ikon kado di paling bawah dong wkwkwk");
       }
 
       var audioPlaying = false;
