@@ -6,7 +6,7 @@
     <link rel="icon" href="/public/cake.png" type="image/x-icon" />
     <link rel="icon" type="image/png" href="confetti.png" />
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css  "
       rel="stylesheet"
       integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
       crossorigin="anonymous"
@@ -53,7 +53,7 @@
       onclick="hati()"
     ></span>
     <audio id="bgMusic" src="selamatulangtahun2.mp3" loop></audio>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.all.min.js  "></script>
     <script type="text/javascript">
       const author = "Anagwer";
       document.getElementById(
@@ -76,6 +76,21 @@
       // Fungsi reset ke awal
       function reset() {
         location.reload(); // Refresh halaman
+      }
+
+      // Fungsi untuk animasi typing
+      function typeText(element, text, callback) {
+        let i = 0;
+        element.innerHTML = '';
+        const timer = setInterval(() => {
+          if (i < text.length) {
+            element.innerHTML += text.charAt(i);
+            i++;
+          } else {
+            clearInterval(timer);
+            if (callback) callback();
+          }
+        }, 50); // Kecepatan typing, bisa diubah (ms)
       }
 
       async function mulai() {
@@ -105,35 +120,48 @@
         });
 
         if (!sayang) {
-          // Tampilkan dialog kecewa
-          await swals.fire({
-            title: "Aww... kok nggak sih 😢",
-            text: "Jangan bohong deh, aku tahu ini hari spesial kamu kok!",
+          // Tampilkan dialog kecewa dengan animasi typing
+          const { html: dialogHtml } = await swals.fire({
+            title: '<span id="typing-title">Aww... kok nggak sih 😢</span>',
+            html: '<div id="typing-text">Jangan bohong deh, aku tahu ini hari spesial kamu kok!</div>',
             icon: "error",
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            willOpen: () => {
+              typeText(document.getElementById('typing-title'), 'Aww... kok nggak sih 😢', () => {
+                // Callback setelah title selesai, bisa kosong atau tambahkan logika lain
+              });
+              typeText(document.getElementById('typing-text'), 'Jangan bohong deh, aku tahu ini hari spesial kamu kok!', () => {
+                // Callback setelah teks selesai, bisa kosong atau tambahkan logika lain
+              });
+            }
           });
 
-          // Ambil dialog Swal dan tambahkan animasi jatuh
-          const dialog = document.querySelector('.swal2-container');
-          if (dialog) {
-            dialog.classList.add('falling');
-          }
-
-          // Tunggu 1.5 detik lalu munculin tombol reset
+          // Tunggu sebentar sebelum menerapkan animasi runtuh
           setTimeout(() => {
-            swals.fire({
-              title: "Yah kok bohong sih...",
-              text: "Mau coba dari awal lagi?",
-              showCancelButton: true,
-              confirmButtonText: "Mulai Ulang",
-              cancelButtonText: "Tutup",
-            }).then((result) => {
-              if (result.isConfirmed) {
-                reset();
-              } else {
-                stopMusic();
-              }
-            });
-          }, 1500);
+            const dialogContainer = document.querySelector('.swal2-container');
+            if (dialogContainer) {
+              dialogContainer.classList.add('falling');
+            }
+
+            // Setelah animasi selesai, tampilkan tombol reset
+            setTimeout(() => {
+              swals.fire({
+                title: "Yah kok bohong sih...",
+                text: "Mau coba dari awal lagi?",
+                showCancelButton: true,
+                confirmButtonText: "Mulai Ulang",
+                cancelButtonText: "Tutup",
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  reset();
+                } else {
+                  stopMusic();
+                }
+              });
+            }, 1500); // Sesuaikan dengan durasi animasi CSS (1.5 detik)
+          }, 2000); // Tunggu 2 detik setelah teks selesai muncul (1 detik teks + 1 detik jeda)
 
           return;
         }
@@ -195,7 +223,7 @@
 
     <script
       type="text/javascript"
-      src="https://www.cssscript.com/demo/confetti-falling-animation/confetti.js"
+      src="https://www.cssscript.com/demo/confetti-falling-animation/confetti.js  "
     ></script>
   </body>
 </html>
